@@ -1,0 +1,13 @@
+# Python Environment
+venv/
+__pycache__/
+*.pyc
+
+# System
+.DS_Store
+
+# Rozszerzenia VS Code/Środowiska
+.vscode/
+
+# Pliki tymczasowe serwera
+*.tmp
