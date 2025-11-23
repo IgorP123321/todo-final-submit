@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ToDo Application
 
 T# 📝 TODO API - Menedżer Zadań (Python + FastAPI)
@@ -60,3 +61,6 @@ Projekt implementuje kompletny **REST API** (CRUD) dla zarządzania zadaniami. W
 curl -X POST http://localhost:8000/tasks \
   -H "Content-Type: application/json" \
   -d '{"title":"Testowanie API","description":"Weryfikacja POST i zapisu do pliku"}'
+=======
+# todobackand
+>>>>>>> 5dea992b38c373d9b1992c1ea32f696d1b7e5aaf
