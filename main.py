@@ -6,14 +6,11 @@ from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from typing import List, Optional
-
-# --- KONFIGURACJA BAZY ---
 DATABASE_URL = "sqlite:///./moja_baza.db"
 Base = declarative_base()
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# --- MODELE BAZY DANYCH ---
 class UserDB(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -31,10 +28,8 @@ class TaskDB(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# --- SECURITY ---
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-# --- SCHEMATY ---
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -48,7 +43,6 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
 
-# --- APLIKACJA ---
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -57,7 +51,6 @@ def get_db():
     try: yield db
     finally: db.close()
 
-# --- ENDPOINTY ---
 
 @app.post("/register")
 def register(user: UserRegister, db: Session = Depends(get_db)):

@@ -1,66 +1,29 @@
-<<<<<<< HEAD
-# ToDo Application
+# Minimalistyczny Menedżer Zadań (Full-Stack Python App)
 
-T# 📝 TODO API - Menedżer Zadań (Python + FastAPI)
-**Autor:** [Igor Pawłowski]
-**Grupa:** [ININ4 (hybryda)]
-**Data:** [23.11.2025]
+Projekt aplikacji typu To-Do stworzony w ramach zaliczenia, łączący nowoczesny backend w Pythonie z przejrzystym interfejsem frontendowym.
 
-**Projekt:** Backend REST API dla listy zadań z trwałą pamięcią (JSON).
+## 🏗️ Struktura Projektu
+Aplikacja została podzielona na moduły zgodnie z najlepszymi praktykami:
+- `main.py` - Serwer backendowy FastAPI z logiką bazy danych.
+- `/js` - Logika frontendu (komunikacja z API, obsługa DOM).
+- `/css` - Style wizualne aplikacji.
+- `index.html` - Główny widok aplikacji.
 
-### Opis projektu
-Projekt implementuje kompletny **REST API** (CRUD) dla zarządzania zadaniami. Wszystkie operacje (tworzenie, modyfikacja, usuwanie) są trwałe dzięki zapisowi danych do lokalnego pliku **`tasks.json`**. Projekt zawiera również testy jednostkowe do weryfikacji logiki serwera.
+## 🛠️ Stos Technologiczny
+* **Backend:** Python + FastAPI
+* **Baza danych:** SQLite + SQLAlchemy (Mapowanie obiektowo-relacyjne)
+* **Uwierzytelnianie:** Bezpieczne haszowanie haseł (PBKDF2)
+* **Frontend:** Vanilla JavaScript, CSS3, HTML5
 
-### Technologie
-* **Język programowania:** Python
-* **Framework:** FastAPI
-* **Serwer:** Uvicorn
-* **Pamięć:** Plik JSON (`tasks.json`)
-* **Testowanie:** Pytest, HTTPX
+## ✨ Kluczowe Funkcjonalności
+* **Zarządzanie Użytkownikami:** Rejestracja (login + email) oraz logowanie.
+* **Prywatność:** Każdy użytkownik zarządza wyłącznie własną listą zadań.
+* **Operacje CRUD:** Dodawanie, wyświetlanie oraz usuwanie zadań bezpośrednio w bazie danych.
+* **Persystencja danych:** Dzięki SQLite dane nie znikają po zamknięciu serwera.
 
----
+## 🚦 Jak uruchomić projekt?
 
-## 🚀 Instalacja i Uruchomienie
-
-### Wymagania
-* Python 3.8+
-
-### Krok po kroku
-
-1.  **Przejdź do folderu projektu** (np. `todo-app`):
-    ```bash
-    cd [nazwa-projektu]
-    ```
-
-2.  **Zainstaluj zależności** (w tym środowisko wirtualne, jeśli nie było tworzone):
-    ```bash
-    python -m pip install fastapi uvicorn 'python-multipart' pytest httpx
-    ```
-
-3.  **Uruchom serwer API** (w trybie stabilnym):
-    ```bash
-    python -m uvicorn main:app
-    ```
-    Serwer będzie dostępny pod adresem: `http://localhost:8000`
-
----
-
-## 🔗 Endpointy API (REST)
-
-| Metoda | Endpoint | Opis | Wymagania |
-| :--- | :--- | :--- | :--- |
-| **GET** | `/health` | Sprawdza status działania API. | Brak |
-| **GET** | `/tasks` | Pobiera listę wszystkich zadań. | Brak |
-| **POST** | `/tasks` | Tworzy nowe zadanie. | Wymagane pole `title`. |
-| **PUT** | `/tasks/{id}` | Modyfikuje istniejące zadanie (np. status `completed`). | Wymaga ID zadania. |
-| **DELETE** | `/tasks/{id}` | Usuwa zadanie. | Wymaga ID zadania. |
-
-### Przykład użycia POST (Thunder Client / cURL)
-
-```bash
-curl -X POST http://localhost:8000/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Testowanie API","description":"Weryfikacja POST i zapisu do pliku"}'
-=======
-# todobackand
->>>>>>> 5dea992b38c373d9b1992c1ea32f696d1b7e5aaf
+1. **Instalacja bibliotek:**
+   Upewnij się, że masz Pythona, a następnie zainstaluj zależności:
+   ```bash
+   pip install fastapi uvicorn sqlalchemy passlib cryptography
