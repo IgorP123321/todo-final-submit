@@ -2,335 +2,128 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimalistyczny Menedżer Zadań</title>
-    
+    <title>Menedżer Zadań</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-        :root {
-            --primary: #007BFF;
-            --secondary: #6c757d;
-            --success: #28a745; 
-            --danger: #dc3545;
-            --bg-color: #f7f7f7;
-            --card-bg: #ffffff;
-            --border-color: #e5e5e5;
-            --shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            padding: 25px;
-            border: 1px solid var(--border-color);
-        }
-
-        h1 { margin-top: 0; font-size: 2rem; color: var(--primary); }
-        h3 { font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
-
-        #task-form { display: flex; gap: 10px; margin-bottom: 20px; }
-        #title-input, #description-input {
-            flex-grow: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;
-        }
-        button {
-            padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;
-            background-color: var(--primary); color: white; transition: background-color 0.2s;
-        }
-        button:hover { background-color: #0056b3; }
-        button.danger { background-color: var(--danger); }
-        button.complete-btn { background-color: var(--secondary); }
-        button.complete-btn:hover { background-color: #5a6268; }
-
-        /* LISTA ZADAŃ */
-        #task-list { list-style: none; padding: 0; }
-        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px dashed var(--border-color); }
-        .task-item.completed { opacity: 0.6; }
-        .task-item-content h3 { font-size: 1rem; margin: 0; }
-        .task-item-content p { font-size: 0.85rem; color: var(--text-color-secondary); margin: 3px 0 0; }
-        .task-actions { display: flex; gap: 8px; }
-
-        /* STATYSTYKI */
-        .statistics { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); }
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; }
-        .stat-item h3 { font-size: 0.9rem; color: var(--text-color-secondary); margin-bottom: 3px; }
-        .stat-item p { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
-
-        /* FILTRY */
-        .filters { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        select { padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        :root { --primary: #007BFF; --bg: #f4f7f6; --card: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 40px; }
+        .container { width: 100%; max-width: 500px; }
+        .card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px; transition: 0.3s; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-sub { background: #eee; color: #333; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .btn-del { background: #ff4d4d; color: white; width: auto; padding: 5px 10px; }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>Minimalistyczny Menedżer Zadań</h1>
-        
-        <div class="card">
-            <h3>Dodaj zadanie</h3>
-            <form id="task-form">
-                <input type="text" id="title-input" placeholder="Tytuł zadania" required>
-                <input type="text" id="description-input" placeholder="Opis (opcjonalny)">
-                <button type="submit">Dodaj</button>
-            </form>
-
-            <div class="statistics">
-                <h3>Statystyki prac</h3>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <p id="total-tasks">0</p>
-                        <h3>Wszystkie</h3>
-                    </div>
-                    <div class="stat-item">
-                        <p id="completed-tasks">0</p>
-                        <h3>Ukończone</h3>
-                    </div>
-                    <div class="stat-item">
-                        <p id="active-tasks">0</p>
-                        <h3>Aktywne</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="filters">
-                <h3>Twoje zadania</h3>
-                <div>
-                    <select id="filter-select">
-                        <option value="all">Wszystkie</option>
-                        <option value="active">Aktywne</option>
-                        <option value="completed">Ukończone</option>
-                    </select>
-                    <button id="reset-filter-btn" class="secondary">Resetuj filtry</button>
-                </div>
-            </div>
-            
-            <ul id="task-list">
-                </ul>
-        </div>
+<div class="container">
+    <div id="auth-box" class="card">
+        <h2 id="auth-title">Logowanie</h2>
+        <input type="text" id="username" placeholder="Login">
+        <input type="email" id="email-field" class="hidden" placeholder="E-mail">
+        <input type="password" id="password" placeholder="Hasło">
+        <button onclick="submitAuth()" class="btn-main" id="btn-text">Zaloguj</button>
+        <button onclick="toggleAuth()" class="btn-sub" id="btn-toggle">Nie masz konta? Zarejestruj się</button>
     </div>
 
-    <script>
-        const API_URL = 'http://127.0.0.1:8000';
-        let tasks = []; 
-        let filterSelect; 
-        
-        // Zmienne DOM
-        let taskList, taskForm;
-        let totalTasksElement, completedTasksElement, activeTasksElement; // Usunięto progressBar
+    <div id="app-box" class="hidden">
+        <div class="card">
+            <h3>Cześć, <span id="user-display"></span>!</h3>
+            <button onclick="logout()" class="btn-sub">Wyloguj</button>
+        </div>
+        <div class="card">
+            <h3>Dodaj zadanie</h3>
+            <input type="text" id="t-title" placeholder="Tytuł">
+            <input type="text" id="t-desc" placeholder="Opis">
+            <button onclick="addTask()" class="btn-main">Dodaj</button>
+        </div>
+        <div class="card">
+            <h3>Twoje zadania</h3>
+            <div id="task-list"></div>
+        </div>
+    </div>
+</div>
 
-        function sanitizeHtml(str = '') {
-            return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-        }
+<script>
+    const API = 'http://127.0.0.1:8000';
+    let isLogin = true;
 
-        // --- FUNKCJE KOMUNIKACJI (CRUD) ---
+    function toggleAuth() {
+        isLogin = !isLogin;
+        document.getElementById('auth-title').innerText = isLogin ? 'Logowanie' : 'Rejestracja';
+        document.getElementById('email-field').classList.toggle('hidden', isLogin);
+        document.getElementById('btn-text').innerText = isLogin ? 'Zaloguj' : 'Zarejestruj';
+        document.getElementById('btn-toggle').innerText = isLogin ? 'Nie masz konta? Zarejestruj się' : 'Masz konto? Zaloguj się';
+    }
 
-        async function fetchTasks() {
-            try {
-                const response = await fetch(`${API_URL}/tasks`);
-                if (!response.ok) {
-                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
-                }
-                tasks = await response.json(); 
-                const currentFilter = filterSelect ? filterSelect.value : 'all';
-                renderTasks(currentFilter);
-                updateStatistics();
-                
-            } catch (error) {
-                console.error('Błąd podczas pobierania zadań (GET):', error);
-                if (taskList) {
-                    taskList.innerHTML = '<li style="color:red; list-style:none; text-align:center; padding: 20px;">❌ Nie udało się połączyć z API. Sprawdź serwer i port.</li>';
-                }
-            }
-        }
+    async function submitAuth() {
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email-field').value;
+        const password = document.getElementById('password').value;
+        const mode = isLogin ? 'login' : 'register';
 
-        async function addTaskFromForm(e) {
-            if (e) e.preventDefault();
-            const titleInput = document.getElementById('title-input');
-            const descriptionInput = document.getElementById('description-input');
-            
-            const title = titleInput.value.trim();
-            const description = descriptionInput.value.trim();
+        const body = isLogin ? { username, password } : { username, email, password };
 
-            if (!title) {
-                alert('Tytuł zadania jest wymagany!');
-                return;
-            }
-
-            const taskData = { title, description };
-
-            try {
-                const response = await fetch(`${API_URL}/tasks`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(taskData)
-                });
-
-                if (response.status !== 201) {
-                    throw new Error(`Błąd POST: ${response.status}`);
-                }
-                
-                titleInput.value = '';
-                descriptionInput.value = '';
-                fetchTasks(); 
-                
-            } catch (error) {
-                console.error('Błąd POST:', error);
-                alert('Nie udało się dodać zadania.');
-            }
-        }
-
-        async function toggleTaskById(id) {
-            const task = tasks.find(x => x.id == id);
-            if (!task) return; 
-
-            const newCompletedStatus = !task.completed;
-            const updateData = { completed: newCompletedStatus };
-
-            try {
-                const response = await fetch(`${API_URL}/tasks/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Błąd PUT: ${response.status}`);
-                }
-
-                fetchTasks(); 
-                
-            } catch (error) {
-                console.error('Błąd PUT:', error);
-                alert('Nie udało się zaktualizować statusu zadania.');
-            }
-        }
-
-        async function deleteTaskById(id) {
-            if (!confirm("Czy na pewno chcesz usunąć to zadanie?")) return;
-                    
-            try {
-                const response = await fetch(`${API_URL}/tasks/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok && response.status !== 204) {
-                    throw new Error(`Błąd DELETE: ${response.status}`);
-                }
-                
-                fetchTasks(); 
-            } catch (error) {
-                console.error('Błąd DELETE:', error);
-                alert('Błąd usuwania zadania.');
-            }
-        }
-
-        // --- FUNKCJE WIDOKU I STATYSTYK ---
-
-        function renderTasks(filter = 'all') {
-            const filtered = tasks.filter(t => {
-                // WZMOCNIONA LOGIKA FILTRA: Zapewnia, że filtracja działa poprawnie
-                if (filter === 'active') return t.completed === false;
-                if (filter === 'completed') return t.completed === true;
-                return true;
+        try {
+            const res = await fetch(`${API}/${mode}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
             });
-
-            taskList.innerHTML = ''; 
-
-            if (filtered.length === 0) {
-                const message = tasks.length === 0 && filter === 'all' 
-                    ? '<li><p style="padding: 20px; text-align: center;">📋 Dodaj pierwsze zadanie, aby zacząć!</p></li>'
-                    : '<li><p style="padding: 20px; text-align: center;">🎉 Brak zadań pasujących do filtru.</p></li>';
-                taskList.innerHTML = message;
-            }
-
-            filtered.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item' + (task.completed ? ' completed' : '');
-                li.dataset.id = task.id;
-
-                li.innerHTML = `
-                    <div class="task-item-content">
-                        <h3>${sanitizeHtml(task.title)}</h3>
-                        ${task.description ? `<p>${sanitizeHtml(task.description)}</p>` : ''}
-                    </div>
-                    <div class="task-actions">
-                        <button onclick="toggleTaskById(${task.id})" class="complete-btn" style="background-color: ${task.completed ? 'var(--secondary)' : 'var(--success)'};">
-                            ${task.completed ? 'Aktywuj' : 'Ukończ'}
-                        </button>
-                        <button onclick="deleteTaskById(${task.id})" class="danger">Usuń</button>
-                    </div>
-                `;
-                taskList.appendChild(li);
-            });
-        }
-
-        function updateStatistics() {
-            const total = tasks.length;
-            const completed = tasks.filter(t => t.completed).length;
-            const active = total - completed;
-
-            totalTasksElement.textContent = total;
-            completedTasksElement.textContent = completed;
-            activeTasksElement.textContent = active;
-          }
-
-        document.addEventListener('DOMContentLoaded', () => {
-
-            taskList = document.getElementById('task-list');
-            taskForm = document.getElementById('task-form');
-            filterSelect = document.getElementById('filter-select');
-            const resetFilterBtn = document.getElementById('reset-filter-btn');
-
-            totalTasksElement = document.getElementById('total-tasks');
-            completedTasksElement = document.getElementById('completed-tasks');
-            activeTasksElement = document.getElementById('active-tasks');
-
-            if (!totalTasksElement || !completedTasksElement || !activeTasksElement) {
-                console.error('Krytyczny błąd: Brak wymaganych elementów statystyk.');
-                const container = document.querySelector('.container');
-                if (container) {
-                    container.innerHTML = '<h2 style="color:red; text-align:center;">Błąd ładowania aplikacji. Brak kluczowych elementów statystyk w HTML.</h2>';
+            const data = await res.json();
+            if (res.ok) {
+                if (isLogin) {
+                    localStorage.setItem('uid', data.user_id);
+                    localStorage.setItem('uname', data.username);
+                    showApp();
+                } else {
+                    alert("Zarejestrowano! Zaloguj się.");
+                    toggleAuth();
                 }
-                return;
-            }
+            } else { alert(data.detail); }
+        } catch (e) { alert("Brak połączenia!"); }
+    }
 
-            if (taskForm) {
-                taskForm.addEventListener('submit', addTaskFromForm);
-            }
+    function showApp() {
+        document.getElementById('auth-box').classList.add('hidden');
+        document.getElementById('app-box').classList.remove('hidden');
+        document.getElementById('user-display').innerText = localStorage.getItem('uname');
+        loadTasks();
+    }
 
-            if (filterSelect) {
-                filterSelect.addEventListener('change', (e) => renderTasks(e.target.value));
-            }
+    async function loadTasks() {
+        const res = await fetch(`${API}/tasks/${localStorage.getItem('uid')}`);
+        const tasks = await res.json();
+        const container = document.getElementById('task-list');
+        container.innerHTML = tasks.map(t => `
+            <div class="task-item">
+                <span><strong>${t.title}</strong> - ${t.description || ''}</span>
+                <button onclick="delTask(${t.id})" class="btn-del">X</button>
+            </div>
+        `).join('');
+    }
 
-            if (resetFilterBtn) {
-                resetFilterBtn.addEventListener('click', () => {
-                    filterSelect.value = 'all';
-                    renderTasks('all');
-                });
-            }
-            
-            fetchTasks(); 
+    async function addTask() {
+        const title = document.getElementById('t-title').value;
+        const description = document.getElementById('t-desc').value;
+        await fetch(`${API}/tasks/${localStorage.getItem('uid')}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description })
         });
-    </script>
+        loadTasks();
+    }
+
+    async function delTask(id) {
+        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+        loadTasks();
+    }
+
+    function logout() { localStorage.clear(); location.reload(); }
+    if (localStorage.getItem('uid')) showApp();
+</script>
 </body>
 </html>

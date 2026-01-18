@@ -1,128 +1,95 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import json
-import os
-from datetime import datetime, timezone
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from pydantic import BaseModel, EmailStr
+from passlib.context import CryptContext
+from typing import List, Optional
 
-TASKS_FILE = "tasks.json"
-app = FastAPI()
+# --- KONFIGURACJA BAZY ---
+DATABASE_URL = "sqlite:///./moja_baza.db"
+Base = declarative_base()
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# KONFIGURACJA CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# --- MODELE BAZY DANYCH ---
+class UserDB(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password_hash = Column(String)
 
-# MODELE DANYCH
-class TaskIn(BaseModel):
-    title: Optional[str] = None
+class TaskDB(Base):
+    __tablename__ = "tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    description = Column(String, nullable=True)
+    completed = Column(Boolean, default=False)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+
+Base.metadata.create_all(bind=engine)
+
+# --- SECURITY ---
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
+# --- SCHEMATY ---
+class UserRegister(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class TaskCreate(BaseModel):
+    title: str
     description: Optional[str] = None
-    completed: Optional[bool] = None
 
-# FUNKCJE PLIKU JSON - UŻYWAJĄCEGO ATOMOWEGO ZAPISU
-def read_tasks() -> List[Dict[str, Any]]:
-    """Odczytuje zadania, gwarantując zwrócenie listy (jeśli plik nie istnieje/jest uszkodzony)."""
-    if not os.path.exists(TASKS_FILE):
-        return []
-    try:
-        with open(TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
-            if not content:
-                return []
-            data = json.loads(content)
-            # Gwarantujemy, że zwracamy listę
-            return data if isinstance(data, list) else []
-    except json.JSONDecodeError:
-        return []
+# --- APLIKACJA ---
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-def write_tasks(tasks: List[Dict[str, Any]]):
-    """Atomowy zapis danych, odporny na uszkodzenia i blokady pliku."""
-    temp_file = TASKS_FILE + ".tmp"
-    try:
-        with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(tasks, f, indent=4, ensure_ascii=False)
-        
-        # Atomowa zamiana pliku: to zamyka stary plik i zastępuje go nowym
-        os.replace(temp_file, TASKS_FILE) 
-    except Exception as e:
-        print(f"CRITICAL I/O ERROR: Failed to save {TASKS_FILE}. {e}")
-        # W przypadku błędu zapisu, rzucamy 500
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server failed to save data due to system lock.")
+def get_db():
+    db = SessionLocal()
+    try: yield db
+    finally: db.close()
 
+# --- ENDPOINTY ---
 
-def get_next_id(tasks: List[Dict[str, Any]]) -> int:
-    if not tasks:
-        return 1
-    max_id = max(task.get("id", 0) for task in tasks)
-    return max_id + 1
+@app.post("/register")
+def register(user: UserRegister, db: Session = Depends(get_db)):
+    if db.query(UserDB).filter((UserDB.username == user.username) | (UserDB.email == user.email)).first():
+        raise HTTPException(status_code=400, detail="Użytkownik lub e-mail już istnieje")
+    new_user = UserDB(username=user.username, email=user.email, password_hash=pwd_context.hash(user.password))
+    db.add(new_user)
+    db.commit()
+    return {"status": "success"}
 
-# ENDPOINTY
-@app.get("/health")
-def get_health():
-    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    return {"status": "OK", "timestamp": now_iso}
+@app.post("/login")
+def login(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(UserDB).filter(UserDB.username == user.username).first()
+    if not db_user or not pwd_context.verify(user.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Błędne dane")
+    return {"user_id": db_user.id, "username": db_user.username}
 
-@app.get("/tasks", response_model=List[Dict[str, Any]])
-def get_all_tasks():
-    return read_tasks()
+@app.get("/tasks/{u_id}")
+def get_tasks(u_id: int, db: Session = Depends(get_db)):
+    return db.query(TaskDB).filter(TaskDB.owner_id == u_id).all()
 
-@app.post("/tasks", status_code=status.HTTP_201_CREATED, response_model=Dict[str, Any])
-def create_task(task_in: TaskIn):
-    if not task_in.title: 
-         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Title is required")
+@app.post("/tasks/{u_id}")
+def add_task(u_id: int, task: TaskCreate, db: Session = Depends(get_db)):
+    new_task = TaskDB(**task.dict(), owner_id=u_id)
+    db.add(new_task)
+    db.commit()
+    return {"status": "success"}
 
-    tasks = read_tasks()
-    new_id = get_next_id(tasks)
-    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    
-    new_task = {
-        "id": new_id,
-        "title": task_in.title,
-        "description": task_in.description,
-        "completed": False,
-        "createdAt": now_iso
-    }
-    
-    tasks.append(new_task)
-    write_tasks(tasks) # Używa atomowego zapisu
-    return new_task
-
-@app.put("/tasks/{task_id}", response_model=Dict[str, Any])
-def update_task(task_id: int, task_in: TaskIn):
-    tasks = read_tasks()
-    
-    try:
-        task_index = next(i for i, task in enumerate(tasks) if task["id"] == task_id)
-    except StopIteration:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Task not found", "id": task_id})
-
-    task_to_update = tasks[task_index]
-    
-    if task_in.title is not None:
-        task_to_update["title"] = task_in.title
-    if task_in.description is not None:
-        task_to_update["description"] = task_in.description
-    if task_in.completed is not None:
-        task_to_update["completed"] = task_in.completed
-        
-    task_to_update["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    
-    tasks[task_index] = task_to_update
-    write_tasks(tasks)
-    return task_to_update
-
-@app.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int):
-    tasks = read_tasks()
-    original_len = len(tasks)
-    tasks[:] = [task for task in tasks if task["id"] != task_id] 
-    
-    if len(tasks) == original_len:
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Task not found", "id": task_id})
-
-    write_tasks(tasks)
-    return
+@app.delete("/tasks/{t_id}")
+def delete_task(t_id: int, db: Session = Depends(get_db)):
+    task = db.query(TaskDB).filter(TaskDB.id == t_id).first()
+    if not task: raise HTTPException(status_code=404)
+    db.delete(task)
+    db.commit()
+    return {"status": "deleted"}
